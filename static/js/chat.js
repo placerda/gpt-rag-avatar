@@ -27,46 +27,46 @@ function initMessages() {
 // Connect to avatar service by retrieving tokens from your backend
 function connectAvatar() {
     fetch("/get-speech-region")
-      .then(response => response.json())
-      .then(regionData => {
-         const speechRegion = regionData.speech_region;
-         // Get the speech token
-         fetch("/get-speech-token")
-           .then(response => response.json())
-           .then(tokenData => {
-              token = tokenData.token; // store globally for recognition
-              // Create speech synthesis configuration
-              const speechSynthesisConfig = SpeechSDK.SpeechConfig.fromAuthorizationToken(token, speechRegion);
-              speechSynthesisConfig.speechSynthesisVoiceName = "en-US-AvaMultilingualNeural";
-              // Set default avatar configuration (hardcoded from env)
-              const talkingAvatarCharacter = "Lisa";
-              const talkingAvatarStyle = "casual-sitting";
-              const avatarConfig = new SpeechSDK.AvatarConfig(talkingAvatarCharacter, talkingAvatarStyle);
-              avatarConfig.customized = false;
-              avatarSynthesizer = new SpeechSDK.AvatarSynthesizer(speechSynthesisConfig, avatarConfig);
-              avatarSynthesizer.avatarEventReceived = function(s, e) {
-                  console.log("Avatar event: " + e.description);
-              };
-              // Get ICE token from backend for WebRTC
-              fetch("/get-ice-server-token")
+        .then(response => response.json())
+        .then(regionData => {
+            const speechRegion = regionData.speech_region;
+            // Get the speech token
+            fetch("/get-speech-token")
                 .then(response => response.json())
-                .then(iceData => {
-                   const iceServerUrl = iceData.Urls[0];
-                   const iceServerUsername = iceData.Username;
-                   const iceServerCredential = iceData.Password;
-                   setupWebRTC(iceServerUrl, iceServerUsername, iceServerCredential);
+                .then(tokenData => {
+                    token = tokenData.token; // store globally for recognition
+                    // Create speech synthesis configuration
+                    const speechSynthesisConfig = SpeechSDK.SpeechConfig.fromAuthorizationToken(token, speechRegion);
+                    speechSynthesisConfig.speechSynthesisVoiceName = "en-US-AvaMultilingualNeural";
+                    // Set default avatar configuration (hardcoded from env)
+                    const talkingAvatarCharacter = "Lisa";
+                    const talkingAvatarStyle = "casual-sitting";
+                    const avatarConfig = new SpeechSDK.AvatarConfig(talkingAvatarCharacter, talkingAvatarStyle);
+                    avatarConfig.customized = false;
+                    avatarSynthesizer = new SpeechSDK.AvatarSynthesizer(speechSynthesisConfig, avatarConfig);
+                    avatarSynthesizer.avatarEventReceived = function(s, e) {
+                        console.log("Avatar event: " + e.description);
+                    };
+                    // Get ICE token from backend for WebRTC
+                    fetch("/get-ice-server-token")
+                        .then(response => response.json())
+                        .then(iceData => {
+                            const iceServerUrl = iceData.Urls[0];
+                            const iceServerUsername = iceData.Username;
+                            const iceServerCredential = iceData.Password;
+                            setupWebRTC(iceServerUrl, iceServerUsername, iceServerCredential);
+                        })
+                        .catch(err => console.error("Error fetching ICE token:", err));
                 })
-                .catch(err => console.error("Error fetching ICE token:", err));
-           })
-           .catch(err => console.error("Error fetching speech token:", err));
-      })
-      .catch(err => console.error("Error fetching speech region:", err));
-      
+                .catch(err => console.error("Error fetching speech token:", err));
+        })
+        .catch(err => console.error("Error fetching speech region:", err));
+
     if (!messageInitiated) {
-       initMessages();
-       messageInitiated = true;
+        initMessages();
+        messageInitiated = true;
     }
-    
+
     // Disable the start session button once clicked
     document.getElementById('startSession').disabled = true;
 }
@@ -138,39 +138,44 @@ window.startRecording = () => {
     }
     // For recognition, use the same region you got earlier.
     // (You could also fetch /get-speech-region again if needed.)
-    const speechRegion = "westus2"; // Adjust if needed or store globally from connectAvatar
-    const speechConfig = SpeechSDK.SpeechConfig.fromAuthorizationToken(token, speechRegion);
-    speechConfig.SpeechServiceConnection_LanguageIdMode = "Continuous";
-    const supported_languages = ["en-US", "de-DE", "zh-CN", "nl-NL"];
-    const autoDetectSourceLanguageConfig = SpeechSDK.AutoDetectSourceLanguageConfig.fromLanguages(supported_languages);
-    
-    // Change the microphone button icon to indicate "stop"
-    document.getElementById('buttonIcon').className = "fas fa-stop";
-    document.getElementById('startRecording').disabled = true;
-    
-    // Create the recognizer using the default microphone input
-    speechRecognizer = SpeechSDK.SpeechRecognizer.FromConfig(speechConfig, autoDetectSourceLanguageConfig, SpeechSDK.AudioConfig.fromDefaultMicrophoneInput());
-    
-    speechRecognizer.recognized = function(s, e) {
-         if (e.result.reason === SpeechSDK.ResultReason.RecognizedSpeech) {
-              let userQuery = e.result.text.trim();
-              if (userQuery === "") return;
-              console.log("Recognized:", userQuery);
-              // Stop recognition if not continuous
-              window.stopRecording();
-              // Call backend /speak to get the assistant's response
-              handleUserQuery(userQuery, "", "");
-         }
-    };
-    
-    speechRecognizer.startContinuousRecognitionAsync(() => {
-         document.getElementById('startRecording').innerHTML = '<i id="buttonIcon" class="fas fa-stop"></i>';
-         document.getElementById('startRecording').disabled = false;
-         console.log("Recording started.");
-    }, (err) => {
-         console.error("Failed to start recognition:", err);
-         document.getElementById('startRecording').disabled = false;
-    });
+    fetch("/get-speech-region")
+        .then(response => response.json())
+        .then(regionData => {
+            const speechRegion = regionData.speech_region;
+            const speechConfig = SpeechSDK.SpeechConfig.fromAuthorizationToken(token, speechRegion);
+            speechConfig.SpeechServiceConnection_LanguageIdMode = "Continuous";
+            const supported_languages = ["en-US", "de-DE", "zh-CN", "nl-NL"];
+            const autoDetectSourceLanguageConfig = SpeechSDK.AutoDetectSourceLanguageConfig.fromLanguages(supported_languages);
+
+            // Change the microphone button icon to indicate "stop"
+            document.getElementById('buttonIcon').className = "fas fa-stop";
+            document.getElementById('startRecording').disabled = true;
+
+            // Create the recognizer using the default microphone input
+            speechRecognizer = SpeechSDK.SpeechRecognizer.FromConfig(speechConfig, autoDetectSourceLanguageConfig, SpeechSDK.AudioConfig.fromDefaultMicrophoneInput());
+
+            speechRecognizer.recognized = function(s, e) {
+                if (e.result.reason === SpeechSDK.ResultReason.RecognizedSpeech) {
+                    let userQuery = e.result.text.trim();
+                    if (userQuery === "") return;
+                    console.log("Recognized:", userQuery);
+                    // Stop recognition if not continuous
+                    window.stopRecording();
+                    // Call backend /speak to get the assistant's response
+                    handleUserQuery(userQuery, "", "");
+                }
+            };
+
+            speechRecognizer.startContinuousRecognitionAsync(() => {
+                document.getElementById('startRecording').innerHTML = '<i id="buttonIcon" class="fas fa-stop"></i>';
+                document.getElementById('startRecording').disabled = false;
+                console.log("Recording started.");
+            }, (err) => {
+                console.error("Failed to start recognition:", err);
+                document.getElementById('startRecording').disabled = false;
+            });
+        })
+        .catch(err => console.error("Error fetching speech region:", err));
 };
 
 // Stop recording speech
