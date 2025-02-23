@@ -90,6 +90,10 @@ async def get_ice_server_token():
         else:
             raise HTTPException(status_code=response.status_code, detail="Failed to get ICE server token.")
 
+@app.get("/get-speech-region")
+async def get_speech_region():
+    speech_region = os.getenv("AZURE_SPEECH_REGION", "eastus2")
+    return JSONResponse(content={"speech_region": speech_region})
 
 @app.get("/get-speech-token")
 async def get_speech_token():
@@ -117,7 +121,3 @@ if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
     uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)
 
-if __name__ == "__main__":
-    import uvicorn
-    port = int(os.environ.get("PORT", 8000))
-    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)
