@@ -30,8 +30,92 @@ async def serve_index():
 async def serve_index():
     return FileResponse("static/image/favicon.ico")
 
+@app.post("/speak")
+async def speak(request: Request):
+    """
+    Receives a request from the UI with the spoken text and conversation details,
+    then forwards it to the orchestrator's streaming API in text-only mode.
+    The request includes an x-functions-key header for authentication.
+    """
+    body = await request.json()
+    question = body.get("spokenText")
+    conversation_id = body.get("conversation_id", "")
+    if not question:
+        raise HTTPException(status_code=400, detail="Missing spokenText in request.")
+    
+    # Build the payload for the orchestrator.
+    payload = {
+        "conversation_id": conversation_id,
+        "question": question,
+        "text_only": True,
+        "client_principal_id": body.get("client_principal_id", ""),
+        "client_principal_name": body.get("client_principal_name", ""),
+        "access_token": body.get("access_token", "")
+    }
+    
+    headers = {
+        "x-functions-key": FUNCTION_KEY,
+        "Content-Type": "application/json"
+    }
+    
+    async def stream_generator():
+        async with httpx.AsyncClient(timeout=None) as client:
+            async with client.stream("POST", ORCHESTRATOR_STREAM_URL, json=payload, headers=headers) as resp:
+                if resp.status_code != 200:
+                    yield f"Error: {resp.status_code}"
+                    return
+                async for line in resp.aiter_lines():
+                    if line:
+                        yield line
 
-# ... (rest of your existing endpoints, e.g. /speak, /get-ice-server-token, /get-speech-token)
+    return StreamingResponse(stream_generator(), media_type="text/event-stream")
+
+
+@app.get("/get-ice-server-token")
+async def get_ice_server_token():
+    """
+    Retrieves the ICE server token from the Speech service.
+    """
+    speech_region = os.getenv("AZURE_SPEECH_REGION", "westus2")
+    subscription_key = os.getenv("AZURE_SPEECH_API_KEY")
+    if not subscription_key:
+        raise HTTPException(status_code=400, detail="Missing Azure Speech subscription key.")
+
+    token_url = f"https://{speech_region}.tts.speech.microsoft.com/cognitiveservices/avatar/relay/token/v1"
+    async with httpx.AsyncClient() as client:
+        headers = {"Ocp-Apim-Subscription-Key": subscription_key}
+        response = await client.get(token_url, headers=headers)
+        if response.status_code == 200:
+            return JSONResponse(content=response.json())
+        else:
+            raise HTTPException(status_code=response.status_code, detail="Failed to get ICE server token.")
+
+
+@app.get("/get-speech-token")
+async def get_speech_token():
+    """
+    Retrieves the speech token from the Azure Speech service.
+    """
+    speech_region = os.getenv("AZURE_SPEECH_REGION", "westus2")
+    subscription_key = os.getenv("AZURE_SPEECH_API_KEY")
+    if not subscription_key:
+        raise HTTPException(status_code=400, detail="Missing Azure Speech subscription key.")
+
+    token_url = f"https://{speech_region}.api.cognitive.microsoft.com/sts/v1.0/issueToken"
+    async with httpx.AsyncClient() as client:
+        headers = {"Ocp-Apim-Subscription-Key": subscription_key}
+        response = await client.post(token_url, headers=headers)
+        if response.status_code == 200:
+            return JSONResponse(content={"token": response.text})
+        else:
+            raise HTTPException(status_code=response.status_code, detail="Failed to get speech token.")
+
+
+# Ensure the app listens on the port specified by the environment variable (for Azure App Service)
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)
 
 if __name__ == "__main__":
     import uvicorn
