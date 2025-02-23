@@ -93,21 +93,23 @@ function setupWebRTC(iceServerUrl, iceServerUsername, iceServerCredential) {
              container.appendChild(audioElement);
          }
          if (event.track.kind === 'video') {
-             let videoElement = document.createElement('video');
-             videoElement.id = 'videoPlayer';
-             videoElement.srcObject = event.streams[0];
-             videoElement.autoplay = true;
-             videoElement.playsInline = true;
-             videoElement.onplaying = () => {
-                const container = document.getElementById('remoteVideo');
-                container.querySelectorAll('video').forEach(el => el.remove());
-                container.appendChild(videoElement);
-                console.log("WebRTC video connected.");
-                // Enable microphone (startRecording button)
-                document.getElementById('startRecording').disabled = false;
-                sessionActive = true;
-             };
-         }
+            let videoElement = document.createElement('video');
+            videoElement.id = 'videoPlayer';
+            videoElement.srcObject = event.streams[0];
+            videoElement.autoplay = true;
+            videoElement.playsInline = true;
+            videoElement.muted = true; // Mute video to allow autoplay without user gesture
+            videoElement.onplaying = () => {
+               const container = document.getElementById('remoteVideo');
+               container.querySelectorAll('video').forEach(el => el.remove());
+               container.appendChild(videoElement);
+               console.log("WebRTC video connected.");
+               // Enable microphone (startRecording button)
+               document.getElementById('startRecording').disabled = false;
+               sessionActive = true;
+            };
+            videoElement.play().catch(e => console.error("Error playing video: ", e));
+        }        
     };
     
     // Offer to receive one audio and one video track
@@ -116,19 +118,25 @@ function setupWebRTC(iceServerUrl, iceServerUsername, iceServerCredential) {
     
     // Start the avatar (which establishes the connection)
     avatarSynthesizer.startAvatarAsync(peerConnection)
-       .then((r) => {
-           if (r.reason === SpeechSDK.ResultReason.SynthesizingAudioCompleted) {
-              console.log("Avatar started. Result ID: " + r.resultId);
-           } else {
-              console.log("Avatar failed to start. Result ID: " + r.resultId);
-              document.getElementById('startSession').disabled = false;
-           }
-       })
-       .catch((error) => {
-           console.log("Avatar start error: " + error);
-           document.getElementById('startSession').disabled = false;
-       });
-}
+    .then((r) => {
+        if (r.reason === SpeechSDK.ResultReason.SynthesizingAudioCompleted) {
+            console.log("Avatar started. Result ID: " + r.resultId);
+        } else {
+            console.log("Avatar failed to start. Reason: " + r.errorDetails || r.reason);
+            console.log("Result ID: " + r.resultId);
+            document.getElementById('startSession').disabled = false;
+        }
+    })
+    .catch((error) => {
+        console.error("Avatar start error: ", error);
+        if (error instanceof SpeechSDK.SpeechSynthesisResult) {
+            console.error("Error details: " + error.errorDetails);
+        } else if (error instanceof Error) {
+            console.error("Error message: " + error.message);
+        }
+        document.getElementById('startSession').disabled = false;
+    });
+    }
 
 // Start recording user speech (called when the microphone button is clicked)
 window.startRecording = () => {
@@ -136,6 +144,10 @@ window.startRecording = () => {
         console.error("Speech token not available.");
         return;
     }
+    if (speechRecognizer) {
+        window.stopRecording();
+        return;
+    }    
     // For recognition, use the same region you got earlier.
     // (You could also fetch /get-speech-region again if needed.)
     fetch("/get-speech-region")

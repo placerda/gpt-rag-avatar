@@ -12,16 +12,23 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" />
 </head>
 <body>
-  <h1>GPT-RAG Avatar</h1>
-  <!-- Avatar Video and Controls -->
-  <div class="avatar-block" style="margin-bottom:20px;">
-    <!-- This is where the video stream will appear -->
-    <div id="remoteVideo" class="avatar-box"></div>
-    
-    <!-- Canvases for video processing if needed -->
-    <canvas id="canvas" width="720" height="1080" style="background-color: transparent;" hidden></canvas>
-    <canvas id="tmpCanvas" width="720" height="1080" hidden></canvas>
-    
+  <!-- Header with logo and text -->
+  <div id="header">
+    <img src="/static/image/gptrag.png" alt="GPT-RAG Logo" class="logo">
+    <span class="header-text">GPT-RAG</span>
+  </div>
+
+  <!-- Container for avatar and overlay -->
+  <div id="avatarContainer">
+    <!-- Avatar Video Area -->
+    <div id="remoteVideo" class="avatar-box">
+      <!-- The remote video stream will appear here -->
+    </div>
+    <!-- Chat History Overlay (starts hidden) -->
+    <div id="chatHistory" contentEditable="true">
+      <!-- Chat messages will be appended here -->
+    </div>
+
     <!-- Recording/interaction controls -->
     <fluent-card class="record-card">
       <div class="button-container">
@@ -32,8 +39,38 @@
           <i id="buttonIcon" class="fas fa-microphone"></i>
         </button>
       </div>
-      <label id="instructions">Click on the Start Button to Initialize, then press the Mic to start talking</label>
-    </fluent-card>
+      <label id="instructions">Press the Mic to start talking</label>
+    </fluent-card>    
   </div>
+
+  <!-- Canvases for video processing if needed -->
+  <canvas id="canvas" width="720" height="1080" style="background-color: transparent;" hidden></canvas>
+  <canvas id="tmpCanvas" width="720" height="1080" hidden></canvas>
+  
+
+
+  <script>
+    // Automatically start the session when the page loads
+    window.addEventListener('load', function() {
+      window.startSession();
+    });
+
+    // Toggle chat history overlay on click of the avatar-box
+    document.addEventListener('DOMContentLoaded', function() {
+      const avatarBox = document.querySelector('.avatar-box');
+      const chatHistory = document.getElementById('chatHistory');
+      // Ensure chatHistory is hidden initially
+      chatHistory.style.display = 'none';
+      
+      avatarBox.addEventListener('click', function() {
+        // Toggle display: if hidden, show; if visible, hide.
+        if (chatHistory.style.display === 'none') {
+          chatHistory.style.display = 'block';
+        } else {
+          chatHistory.style.display = 'none';
+        }
+      });
+    });
+  </script>
 </body>
 </html>
