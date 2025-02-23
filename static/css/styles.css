@@ -5,6 +5,12 @@
  *  that can be found in the LICENSE file in the root of the source
  *  tree.
  */
+
+body {
+background-color: #000;
+color: #fff;
+}
+
  .hidden {
     display: none;
 }
@@ -348,3 +354,77 @@ input:checked + .slider:before {
     position: relative;
     margin-top: 5px;
 }
+
+.button-container {
+display: flex;
+gap: 10px;
+justify-content: center;
+align-items: center;
+margin-bottom: 10px;
+}
+
+.round-button {
+border: none;
+border-radius: 50%;
+width: 50px;
+height: 50px;
+display: flex;
+justify-content: center;
+align-items: center;
+font-size: 16px;
+cursor: pointer;
+}
+
+#instructions {
+display: block;
+text-align: center;
+margin-top: 8px;
+}
+
+.avatar-box {
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+width: 960px;
+height: 540px;
+background: #000;
+margin: 0 auto;
+}
+
+fluent-card.record-card {
+background-color: #000;
+color: #fff;
+padding: 20px;
+border-radius: 8px;
+border: 1px solid #000;
+}
+
+
+button {
+background-color: #0078D4; /* Microsoft Blue */
+border: none;
+border-radius: 2px;
+color: white;
+font-family: 'Roboto', sans-serif;
+font-size: 0.8em;
+margin: 10px 0 1em 0;
+padding: 0.5em 0.7em 0.6em 0.7em;
+}
+
+button:active {
+background-color: #005A9E; /* Darker shade for active state */
+}
+
+button:hover {
+background-color: #005A9E; /* Darker shade for hover state */
+}
+
+button[disabled] {
+color: #ccc;
+}
+
+button[disabled]:hover {
+background-color: #0078D4;
+}
+  

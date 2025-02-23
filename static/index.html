@@ -2,24 +2,38 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Talking Avatar Chat</title>
+  <title>GPT-RAG Avatar</title>
   <link href="/static/css/styles.css" rel="stylesheet">
   <!-- Speech SDK -->
   <script src="https://aka.ms/csspeech/jsbrowserpackageraw"></script>
   <!-- Your simplified chat.js -->
   <script src="/static/js/chat.js"></script>
+  <script type="module" src="https://unpkg.com/@fluentui/web-components@2.0.0"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" />
 </head>
 <body>
-  <h1>Talking Avatar Chat</h1>
-  <div id="chatContainer">
-    <!-- Chat history display -->
-    <div id="chatHistory" style="border:1px solid #ccc; padding:10px; height:300px; overflow:auto;"></div>
-    <!-- Control buttons -->
-    <button id="startSession" onclick="window.startSession()">Start Session</button>
-    <button id="microphone" onclick="window.microphone()" disabled>Start Microphone</button>
-    <button id="stopSession" onclick="window.stopSession()" disabled>Stop Session</button>
-    <button id="clearChatHistory" onclick="window.clearChatHistory()">Clear Chat History</button>
-    <button id="stopSpeaking" onclick="stopSpeaking()" disabled>Stop Speaking</button>
+  <h1>GPT-RAG Avatar</h1>
+  <!-- Avatar Video and Controls -->
+  <div class="avatar-block" style="margin-bottom:20px;">
+    <!-- This is where the video stream will appear -->
+    <div id="remoteVideo" class="avatar-box"></div>
+    
+    <!-- Canvases for video processing if needed -->
+    <canvas id="canvas" width="720" height="1080" style="background-color: transparent;" hidden></canvas>
+    <canvas id="tmpCanvas" width="720" height="1080" hidden></canvas>
+    
+    <!-- Recording/interaction controls -->
+    <fluent-card class="record-card">
+      <div class="button-container">
+        <button id="startSession" onclick="window.startSession()" class="round-button">
+          <i id="buttonIcon" class="fas fa-play"></i>
+        </button>
+        <button id="startRecording" onclick="window.startRecording()" class="round-button">
+          <i id="buttonIcon" class="fas fa-microphone"></i>
+        </button>
+      </div>
+      <label id="instructions">Click on the Start Button to Initialize, then press the Mic to start talking</label>
+    </fluent-card>
   </div>
 </body>
 </html>
