@@ -361,8 +361,8 @@ function stopSpeaking() {
 
 window.startSession = () => { 
     document.getElementById('startSession').style.display = 'none';
-    document.getElementById('startRecording').style.display = 'inline-block';
     connectAvatar();
+    document.getElementById('startRecording').style.display = 'inline-block';    
 };
 
 
