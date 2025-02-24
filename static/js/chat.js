@@ -103,7 +103,7 @@ function setupWebRTC(iceServerUrl, iceServerUsername, iceServerCredential) {
             container.querySelectorAll('audio').forEach(el => el.remove());
             container.appendChild(audioElement);
          }
-         
+
          if (event.track.kind === 'video') {
             let videoElement = document.createElement('video');
             videoElement.id = 'videoPlayer';
@@ -160,45 +160,50 @@ window.startRecording = () => {
         window.stopRecording();
         return;
     }    
-    // For recognition, use the same region you got earlier.
-    fetch("/get-speech-region")
-        .then(response => response.json())
-        .then(regionData => {
-            const speechRegion = regionData.speech_region;
-            const speechConfig = SpeechSDK.SpeechConfig.fromAuthorizationToken(token, speechRegion);
-            speechConfig.SpeechServiceConnection_LanguageIdMode = "Continuous";
-            const supported_languages = ["en-US", "de-DE", "zh-CN", "nl-NL"];
-            const autoDetectSourceLanguageConfig = SpeechSDK.AutoDetectSourceLanguageConfig.fromLanguages(supported_languages);
+    fetch("/get-supported-languages")
+    .then(response => response.json())
+    .then(languageData => {
+        const supported_languages = languageData.supported_languages;
+        const autoDetectSourceLanguageConfig = SpeechSDK.AutoDetectSourceLanguageConfig.fromLanguages(supported_languages);
+        fetch("/get-speech-region")
+            .then(response => response.json())
+            .then(regionData => {
+                const speechRegion = regionData.speech_region;
+                const speechConfig = SpeechSDK.SpeechConfig.fromAuthorizationToken(token, speechRegion);
+                speechConfig.SpeechServiceConnection_LanguageIdMode = "Continuous";
 
-            // Change the microphone button icon to indicate "stop"
-            document.getElementById('buttonIcon').className = "fas fa-stop";
-            document.getElementById('startRecording').disabled = true;
+                // Change the microphone button icon to indicate "stop"
+                document.getElementById('startRecording').disabled = true;    
+                document.getElementById('buttonIcon').className = "fas fa-stop";                
+                document.getElementById('startRecording').style.backgroundColor = 'red';
 
-            // Create the recognizer using the default microphone input
-            speechRecognizer = SpeechSDK.SpeechRecognizer.FromConfig(speechConfig, autoDetectSourceLanguageConfig, SpeechSDK.AudioConfig.fromDefaultMicrophoneInput());
+                // Create the recognizer using the default microphone input
+                speechRecognizer = SpeechSDK.SpeechRecognizer.FromConfig(speechConfig, autoDetectSourceLanguageConfig, SpeechSDK.AudioConfig.fromDefaultMicrophoneInput());
 
-            speechRecognizer.recognized = function(s, e) {
-                if (e.result.reason === SpeechSDK.ResultReason.RecognizedSpeech) {
-                    let userQuery = e.result.text.trim();
-                    if (userQuery === "") return;
-                    console.log("Recognized:", userQuery);
-                    // Stop recognition if not continuous
-                    window.stopRecording();
-                    // Call backend /speak to get the assistant's response
-                    handleUserQuery(userQuery, "", "");
-                }
-            };
+                speechRecognizer.recognized = function(s, e) {
+                    if (e.result.reason === SpeechSDK.ResultReason.RecognizedSpeech) {
+                        let userQuery = e.result.text.trim();
+                        if (userQuery === "") return;
+                        console.log("Recognized:", userQuery);
+                        // Stop recognition if not continuous
+                        window.stopRecording();
+                        // Call backend /speak to get the assistant's response
+                        handleUserQuery(userQuery, "", "");
+                    }
+                };
 
-            speechRecognizer.startContinuousRecognitionAsync(() => {
-                document.getElementById('startRecording').innerHTML = '<i id="buttonIcon" class="fas fa-stop"></i>';
-                document.getElementById('startRecording').disabled = false;
-                console.log("Recording started.");
-            }, (err) => {
-                console.error("Failed to start recognition:", err);
-                document.getElementById('startRecording').disabled = false;
-            });
+                speechRecognizer.startContinuousRecognitionAsync(() => {
+                    document.getElementById('startRecording').innerHTML = '<i id="buttonIcon" class="fas fa-stop"></i>';
+                    document.getElementById('startRecording').disabled = false;
+                    console.log("Recording started.");
+                }, (err) => {
+                    console.error("Failed to start recognition:", err);
+                    document.getElementById('startRecording').disabled = false;
+                });
+            })
+            .catch(err => console.error("Error fetching speech region:", err));
         })
-        .catch(err => console.error("Error fetching speech region:", err));
+        .catch(err => console.error("Error fetching supported languages:", err));            
 };
 
 // Stop recording speech
@@ -209,6 +214,7 @@ window.stopRecording = () => {
              speechRecognizer = undefined;
              document.getElementById('buttonIcon').className = "fas fa-microphone";
              document.getElementById('startRecording').disabled = false;
+             document.getElementById('startRecording').style.backgroundColor = '#0078D4';
              console.log("Recording stopped.");
          }, (err) => {
              console.error("Error stopping recognition:", err);
@@ -256,36 +262,37 @@ function handleUserQuery(userQuery, userQueryHTML, imgUrlPath) {
          chatHistoryTextArea.innerHTML += "Assistant: ";
          const reader = response.body.getReader();
          function read() {
-             return reader.read().then(({ value, done }) => {
-                 if (done) return;
-                 let chunk = new TextDecoder().decode(value, { stream: true });
-                 
-                 // If the chunk starts with a conversation_id, extract it.
-                 // Check if the chunk is at least 37 characters long (36 for ID + 1 space).
-                 if (chunk.length >= 37) {
-                     // If conversationId is not set, extract from the first 36 characters.
-                     if (!conversationId) {
-                         conversationId = chunk.substring(0, 36);
-                         chunk = chunk.substring(37);
-                     } else if (chunk.startsWith(conversationId + " ")) {
-                         // Remove the conversation id prefix if it is already set.
-                         chunk = chunk.substring(37);
-                     }
-                 }
-                 console.log(`Conversation ID: ${conversationId}`);
-                 
-                 assistantReply += chunk;
-                 displaySentence += chunk;
-                 spokenSentence += chunk;
-                 if (chunk.trim() === "" || chunk.trim() === "\n") {
-                     speak(spokenSentence.trim());
-                     spokenSentence = "";
-                 }
-                 chatHistoryTextArea.innerHTML += displaySentence;
-                 chatHistoryTextArea.scrollTop = chatHistoryTextArea.scrollHeight;
-                 displaySentence = "";
-                 return read();
-             });
+           return reader.read().then(({ value, done }) => {
+             if (done) return;
+             let chunk = new TextDecoder().decode(value, { stream: true });
+             
+             // Check if the first 36 characters form a valid UUID.
+             if (chunk.length >= 37) {
+               let possibleId = chunk.substring(0, 36);
+               // Simple regex for UUID validation.
+               const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+               if (uuidRegex.test(possibleId)) {
+                 // Store/update the conversationId and remove it from the chunk.
+                 conversationId = possibleId;
+                 console.log("Conversation ID:", conversationId);
+                 chunk = chunk.substring(37);
+               }
+             }
+             
+             assistantReply += chunk;
+             displaySentence += chunk;
+             spokenSentence += chunk;
+             
+             if (chunk.trim() === "" || chunk.trim() === "\n") {
+               speak(spokenSentence.trim());
+               spokenSentence = "";
+             }
+             
+             chatHistoryTextArea.innerHTML += displaySentence;
+             chatHistoryTextArea.scrollTop = chatHistoryTextArea.scrollHeight;
+             displaySentence = "";
+             return read();
+           });
          }
          return read();
     })
@@ -352,8 +359,13 @@ function stopSpeaking() {
     });
 }
 
-// Session control functions
-window.startSession = () => { connectAvatar(); };
+window.startSession = () => { 
+    document.getElementById('startSession').style.display = 'none';
+    document.getElementById('startRecording').style.display = 'inline-block';
+    connectAvatar();
+};
+
+
 window.stopSession = () => {
     document.getElementById('startSession').disabled = false;
     document.getElementById('startRecording').disabled = true;

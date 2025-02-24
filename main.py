@@ -95,6 +95,13 @@ async def get_speech_region():
     speech_region = os.getenv("AZURE_SPEECH_REGION", "eastus2")
     return JSONResponse(content={"speech_region": speech_region})
 
+@app.get("/get-supported-languages")
+async def get_supported_languages():
+    supported_languages = os.getenv("SUPPORTED_LANGUAGES", "en-US,de-DE,zh-CN,nl-NL")
+    languages_list = [lang.strip() for lang in supported_languages.split(",")]
+    return JSONResponse(content={"supported_languages": languages_list})
+
+
 @app.get("/get-speech-token")
 async def get_speech_token():
     """
