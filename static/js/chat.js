@@ -1,5 +1,5 @@
 /*
- * Simplified chat.js for Talking Avatar Chat
+ * Simplified chat.js for Talking Avatar Chat with conversation_id persistence
  */
 
 // Global variables
@@ -13,6 +13,10 @@ var spokenTextQueue = [];
 var sessionActive = false;
 var lastSpeakTime;
 var token = ""; // Global token for speech recognition
+
+// Global conversation id that is used between calls.
+// It resets when the page is refreshed.
+var conversationId = "";
 
 // Initialize system prompt messages
 function initMessages() {
@@ -83,15 +87,23 @@ function setupWebRTC(iceServerUrl, iceServerUsername, iceServerCredential) {
     
     peerConnection.ontrack = function(event) {
          if (event.track.kind === 'audio') {
-             let audioElement = document.createElement('audio');
-             audioElement.id = 'audioPlayer';
-             audioElement.srcObject = event.streams[0];
-             audioElement.autoplay = true;
-             console.log("WebRTC audio connected.");
-             const container = document.getElementById('remoteVideo');
-             container.querySelectorAll('audio').forEach(el => el.remove());
-             container.appendChild(audioElement);
+            let audioElement = document.createElement('audio');
+            audioElement.id = 'audioPlayer';
+            audioElement.srcObject = event.streams[0];
+            audioElement.autoplay = true;
+
+            // Attach debugging event listeners
+            audioElement.onplay = () => console.log("Audio element started playing");
+            audioElement.onpause = () => console.log("Audio element paused");
+            audioElement.onended = () => console.log("Audio playback ended");
+            audioElement.onerror = (e) => console.error("Audio element error:", e);             
+
+            console.log("WebRTC audio connected.");
+            const container = document.getElementById('remoteVideo');
+            container.querySelectorAll('audio').forEach(el => el.remove());
+            container.appendChild(audioElement);
          }
+         
          if (event.track.kind === 'video') {
             let videoElement = document.createElement('video');
             videoElement.id = 'videoPlayer';
@@ -136,7 +148,7 @@ function setupWebRTC(iceServerUrl, iceServerUsername, iceServerCredential) {
         }
         document.getElementById('startSession').disabled = false;
     });
-    }
+}
 
 // Start recording user speech (called when the microphone button is clicked)
 window.startRecording = () => {
@@ -149,7 +161,6 @@ window.startRecording = () => {
         return;
     }    
     // For recognition, use the same region you got earlier.
-    // (You could also fetch /get-speech-region again if needed.)
     fetch("/get-speech-region")
         .then(response => response.json())
         .then(regionData => {
@@ -223,9 +234,10 @@ function handleUserQuery(userQuery, userQueryHTML, imgUrlPath) {
     
     if (isSpeaking) { stopSpeaking(); }
     
+    // Use the stored conversationId (empty string on first call)
     let payload = JSON.stringify({
          spokenText: userQuery,
-         conversation_id: ""
+         conversation_id: conversationId
     });
     
     let assistantReply = "";
@@ -247,6 +259,21 @@ function handleUserQuery(userQuery, userQueryHTML, imgUrlPath) {
              return reader.read().then(({ value, done }) => {
                  if (done) return;
                  let chunk = new TextDecoder().decode(value, { stream: true });
+                 
+                 // If the chunk starts with a conversation_id, extract it.
+                 // Check if the chunk is at least 37 characters long (36 for ID + 1 space).
+                 if (chunk.length >= 37) {
+                     // If conversationId is not set, extract from the first 36 characters.
+                     if (!conversationId) {
+                         conversationId = chunk.substring(0, 36);
+                         chunk = chunk.substring(37);
+                     } else if (chunk.startsWith(conversationId + " ")) {
+                         // Remove the conversation id prefix if it is already set.
+                         chunk = chunk.substring(37);
+                     }
+                 }
+                 console.log(`Conversation ID: ${conversationId}`);
+                 
                  assistantReply += chunk;
                  displaySentence += chunk;
                  spokenSentence += chunk;
@@ -341,7 +368,9 @@ window.stopSession = () => {
     }
     sessionActive = false;
 };
+// Clear chat history and reset the conversation id
 window.clearChatHistory = () => {
     document.getElementById('chatHistory').innerHTML = '';
     initMessages();
+    conversationId = "";
 };

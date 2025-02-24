@@ -68,9 +68,9 @@
 }
 
 /* Hide the startSession button */
-#startSession {
+/* #startSession {
     display: none;
-}
+}  */
 
 body {
     background-color: #000;
