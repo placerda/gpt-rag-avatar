@@ -24,7 +24,7 @@
 - An **Azure Key Vault** with the required secrets configured.
 
 > [!IMPORTANT]
-> Avatar uses gpt-rag agentic orchestrator, that supports streaming, which is crucial for real-time voice interactions.
+> Avatar uses gpt-rag agentic orchestrator, that supports streaming used in real-time voice interactions.
 
 ---
 
@@ -39,9 +39,27 @@
 
 2. **Create a Virtual Environment and Install Dependencies:**
 
+You can use either Python's built-in `venv` or Conda to create your environment.
+
    ```bash
    python -m venv venv
    source venv/bin/activate   # On Windows use: venv\Scripts\activate
+   pip install -r requirements.txt
+   ```
+
+2.1. Using venv
+
+   ```bash
+   python -m venv venv
+   source venv/bin/activate   # On Windows use: venv\Scripts\activate
+   pip install -r requirements.txt
+   ```
+
+2.2. Using Conda
+
+   ```bash
+   conda create -n gpt-rag-avatar python=3.12
+   conda activate gpt-rag-avatar
    pip install -r requirements.txt
    ```
 
