@@ -39,7 +39,7 @@
           <i id="buttonIcon" class="fas fa-microphone"></i>
         </button>
       </div>
-      <label id="instructions">Press the Mic to start talking</label>
+      <label id="instructions">Click here to load the Avatar</label>
     </fluent-card>    
   </div>
 
@@ -47,30 +47,5 @@
   <canvas id="canvas" width="720" height="1080" style="background-color: transparent;" hidden></canvas>
   <canvas id="tmpCanvas" width="720" height="1080" hidden></canvas>
   
-
-
-  <!-- <script>
-    // Automatically start the session when the page loads
-    window.addEventListener('load', function() {
-      window.startSession();
-    });
-
-    // Toggle chat history overlay on click of the avatar-box
-    document.addEventListener('DOMContentLoaded', function() {
-      const avatarBox = document.querySelector('.avatar-box');
-      const chatHistory = document.getElementById('chatHistory');
-      // Ensure chatHistory is hidden initially
-      chatHistory.style.display = 'none';
-      
-      avatarBox.addEventListener('click', function() {
-        // Toggle display: if hidden, show; if visible, hide.
-        if (chatHistory.style.display === 'none') {
-          chatHistory.style.display = 'block';
-        } else {
-          chatHistory.style.display = 'none';
-        }
-      });
-    });
-  </script> -->
 </body>
 </html>

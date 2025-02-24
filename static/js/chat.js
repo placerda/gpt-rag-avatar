@@ -359,12 +359,18 @@ function stopSpeaking() {
     });
 }
 
-window.startSession = () => { 
-    document.getElementById('startSession').style.display = 'none';
+window.startSession = () => {
+    document.getElementById('startSession').disabled = true;
+    document.getElementById('startSession').style.backgroundColor = '#005A9E';    
+    document.getElementById('startRecording').style.display = 'none';
+    document.getElementById('instructions').innerText = '';     
     connectAvatar();
-    document.getElementById('startRecording').style.display = 'inline-block';    
+    setTimeout(() => {
+         document.getElementById('startSession').style.display = 'none';
+         document.getElementById('startRecording').style.display = 'inline-block';
+         document.getElementById('instructions').innerText = 'Press the Mic to start talking';
+    }, 6000);
 };
-
 
 window.stopSession = () => {
     document.getElementById('startSession').disabled = false;
@@ -386,3 +392,14 @@ window.clearChatHistory = () => {
     initMessages();
     conversationId = "";
 };
+
+
+document.addEventListener('DOMContentLoaded', function() {
+    const avatarBox = document.querySelector('.avatar-box');
+    const chatHistory = document.getElementById('chatHistory');
+    
+    // Toggle the chat history display on avatar click
+    avatarBox.addEventListener('click', function() {
+        chatHistory.style.display = (chatHistory.style.display === 'none' || chatHistory.style.display === '') ? 'block' : 'none';
+    });
+});
